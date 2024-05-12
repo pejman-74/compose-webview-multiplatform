@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings.LOAD_NO_CACHE
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -182,6 +183,10 @@ fun AccompanistWebView(
                         allowFileAccessFromFileURLs = it.allowFileAccessFromFileURLs
                         allowUniversalAccessFromFileURLs = it.allowUniversalAccessFromFileURLs
                         setSupportZoom(it.supportZoom)
+                        if (!it.useCache) {
+                            cacheMode = LOAD_NO_CACHE
+                            clearCache(true)
+                        }
                     }
 
                     state.webSettings.androidWebSettings.let {

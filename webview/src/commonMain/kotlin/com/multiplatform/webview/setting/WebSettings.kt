@@ -91,6 +91,11 @@ class WebSettings {
     var backgroundColor = Color.Transparent
 
     /**
+     * use caching to load pages
+     */
+    var useCache: Boolean = true
+
+    /**
      * Android platform specific settings
      */
     val androidWebSettings = PlatformWebSettings.AndroidWebSettings()

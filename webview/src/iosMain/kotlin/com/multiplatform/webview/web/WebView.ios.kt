@@ -13,6 +13,7 @@ import platform.CoreGraphics.CGRectZero
 import platform.Foundation.setValue
 import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
+import platform.WebKit.WKWebsiteDataStore
 import platform.WebKit.javaScriptEnabled
 
 /**
@@ -81,6 +82,9 @@ fun IOSWebView(
                         state.webSettings.allowUniversalAccessFromFileURLs,
                         forKey = "allowUniversalAccessFromFileURLs",
                     )
+                    if (!state.webSettings.useCache) {
+                        setWebsiteDataStore(WKWebsiteDataStore.nonPersistentDataStore())
+                    }
                 }
             WKWebView(
                 frame = CGRectZero.readValue(),
