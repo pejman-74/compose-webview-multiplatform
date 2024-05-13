@@ -9,6 +9,7 @@ import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
 import org.cef.browser.CefRendering
 import org.jetbrains.compose.resources.ExperimentalResourceApi
+import com.multiplatform.webview.web.PermissionHandler as MultiplatformPermissionHandler
 
 /**
  * Desktop WebView implementation.
@@ -19,6 +20,7 @@ actual fun ActualWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
+    permissionHandler: MultiplatformPermissionHandler,
     webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,

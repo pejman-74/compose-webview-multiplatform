@@ -25,6 +25,7 @@ actual fun ActualWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
+    permissionHandler: PermissionHandler,
     webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
@@ -34,6 +35,7 @@ actual fun ActualWebView(
         modifier = modifier,
         captureBackPresses = captureBackPresses,
         navigator = navigator,
+        permissionHandler = permissionHandler,
         webViewJsBridge = webViewJsBridge,
         onCreated = onCreated,
         onDispose = onDispose,
@@ -50,6 +52,7 @@ fun IOSWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
+    permissionHandler: PermissionHandler,
     webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
@@ -63,11 +66,14 @@ fun IOSWebView(
         }
     val navigationDelegate = remember { WKNavigationDelegate(state, navigator) }
     val scope = rememberCoroutineScope()
-
+    val wkPermissionHandler = remember {
+        WKPermissionHandler(permissionHandler)
+    }
     UIKitView(
         factory = {
             val config =
                 WKWebViewConfiguration().apply {
+                    UIDelegate = wkPermissionHandler
                     allowsInlineMediaPlayback = true
                     defaultWebpagePreferences.allowsContentJavaScript =
                         state.webSettings.isJavaScriptEnabled

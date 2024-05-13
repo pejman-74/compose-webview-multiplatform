@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Build
 import android.view.ViewGroup
+import android.webkit.GeolocationPermissions
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -331,7 +332,9 @@ open class AccompanistWebViewClient : WebViewClient() {
  * As Accompanist Web needs to set its own web client to function, it provides this intermediary
  * class that can be overriden if further custom behaviour is required.
  */
-open class AccompanistWebChromeClient : WebChromeClient() {
+open class AccompanistWebChromeClient(
+    private val permissionHandler: PermissionHandler = { PermissionRequestResponse.DENY }
+) : WebChromeClient() {
     open lateinit var state: WebViewState
         internal set
     private var lastLoadedUrl = ""
@@ -370,4 +373,40 @@ open class AccompanistWebChromeClient : WebChromeClient() {
             }
         lastLoadedUrl = view.url ?: ""
     }
+
+    override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
+        val response = permissionHandler(request.toMultiplatformPermissionRequest())
+
+        if (response == PermissionRequestResponse.GRANT) {
+            request.grant(request.resources)
+        } else {
+            request.deny()
+        }
+    }
+
+    override fun onGeolocationPermissionsShowPrompt(
+        origin: String,
+        callback: GeolocationPermissions.Callback,
+    ) {
+        val allow = permissionHandler(
+            PermissionRequest(
+                origin,
+                listOf(PermissionRequest.Permission.LOCATION)
+            )
+        ) == PermissionRequestResponse.GRANT
+
+        callback.invoke(origin, allow, false)
+    }
+}
+private fun android.webkit.PermissionRequest.toMultiplatformPermissionRequest() = PermissionRequest(
+    origin.toString(),
+    resources.map(String::toPermission)
+)
+
+private fun String.toPermission(): PermissionRequest.Permission = when (this) {
+    android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE -> PermissionRequest.Permission.AUDIO
+    android.webkit.PermissionRequest.RESOURCE_MIDI_SYSEX -> PermissionRequest.Permission.MIDI
+    android.webkit.PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID -> PermissionRequest.Permission.MEDIA
+    android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE -> PermissionRequest.Permission.VIDEO
+    else -> error("Unknown resource: $this")
 }
