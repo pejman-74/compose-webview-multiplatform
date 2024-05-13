@@ -8,36 +8,40 @@ import platform.WebKit.WKUIDelegateProtocol
 import platform.WebKit.WKWebView
 import platform.darwin.NSObject
 
-class WKPermissionHandler(private val handler: PermissionHandler) : NSObject(), WKUIDelegateProtocol {
+class WKPermissionHandler(
+    private val handler: PermissionHandler?,
+    private val locationPermissionHandler: LocationPermissionHandler?,
+) : NSObject(), WKUIDelegateProtocol {
+    // in ios>=15
     override fun webView(
         webView: WKWebView,
         requestMediaCapturePermissionForOrigin: WKSecurityOrigin,
         initiatedByFrame: WKFrameInfo,
         type: WKMediaCaptureType,
-        decisionHandler: (WKPermissionDecision) -> Unit
+        decisionHandler: (WKPermissionDecision) -> Unit,
     ) {
-        val request = PermissionRequest(
-            requestMediaCapturePermissionForOrigin.string(),
-            type.toPermissions()
-        )
-        val decision = handler(request).toDecision()
-        decisionHandler(decision)
+        if (handler != null) {
+            handler.invoke(
+                PermissionRequest(
+                    permissions = type.toPermissions(),
+                    deny = { decisionHandler(WKPermissionDecision.WKPermissionDecisionDeny) },
+                    grant = { decisionHandler(WKPermissionDecision.WKPermissionDecisionGrant) },
+                ),
+            )
+        } else {
+            decisionHandler(WKPermissionDecision.WKPermissionDecisionPrompt)
+        }
     }
 }
 
-private fun WKSecurityOrigin.string() = "${protocol}://${host}:${port}"
+private fun WKMediaCaptureType.toPermissions() =
+    buildList {
+        when (this@toPermissions) {
+            WKMediaCaptureType.WKMediaCaptureTypeCamera -> add(PermissionRequest.Permission.VIDEO)
+            WKMediaCaptureType.WKMediaCaptureTypeCameraAndMicrophone ->
+                addAll(listOf(PermissionRequest.Permission.VIDEO, PermissionRequest.Permission.AUDIO))
 
-private fun PermissionRequestResponse.toDecision() = when(this) {
-    PermissionRequestResponse.GRANT -> WKPermissionDecision.WKPermissionDecisionGrant
-    PermissionRequestResponse.DENY -> WKPermissionDecision.WKPermissionDecisionDeny
-}
-
-private fun WKMediaCaptureType.toPermissions() = buildList {
-    when(this@toPermissions) {
-        WKMediaCaptureType.WKMediaCaptureTypeCamera -> add(PermissionRequest.Permission.VIDEO)
-        WKMediaCaptureType.WKMediaCaptureTypeCameraAndMicrophone ->
-            addAll(listOf(PermissionRequest.Permission.VIDEO, PermissionRequest.Permission.AUDIO))
-        WKMediaCaptureType.WKMediaCaptureTypeMicrophone -> add(PermissionRequest.Permission.AUDIO)
-        else -> error("Unknown capture type: $this")
+            WKMediaCaptureType.WKMediaCaptureTypeMicrophone -> add(PermissionRequest.Permission.AUDIO)
+            else -> error("Unknown capture type: $this")
+        }
     }
-}

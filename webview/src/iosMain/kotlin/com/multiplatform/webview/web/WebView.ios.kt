@@ -25,7 +25,8 @@ actual fun ActualWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
-    permissionHandler: PermissionHandler,
+    permissionHandler: PermissionHandler?,
+    locationPermissionHandler: LocationPermissionHandler?,
     webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
@@ -36,6 +37,7 @@ actual fun ActualWebView(
         captureBackPresses = captureBackPresses,
         navigator = navigator,
         permissionHandler = permissionHandler,
+        locationPermissionHandler = locationPermissionHandler,
         webViewJsBridge = webViewJsBridge,
         onCreated = onCreated,
         onDispose = onDispose,
@@ -50,10 +52,15 @@ actual fun ActualWebView(
 fun IOSWebView(
     state: WebViewState,
     modifier: Modifier,
-    captureBackPresses: Boolean,
-    navigator: WebViewNavigator,
-    permissionHandler: PermissionHandler,
-    webViewJsBridge: WebViewJsBridge?,
+    captureBackPresses: Boolean = true,
+    navigator: WebViewNavigator = rememberWebViewNavigator(),
+    permissionHandler: PermissionHandler? = null,
+    locationPermissionHandler: LocationPermissionHandler? = null,
+    wkPermissionHandler: WKPermissionHandler =
+        remember {
+            WKPermissionHandler(permissionHandler, locationPermissionHandler)
+        },
+    webViewJsBridge: WebViewJsBridge? = null,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
 ) {
@@ -66,14 +73,11 @@ fun IOSWebView(
         }
     val navigationDelegate = remember { WKNavigationDelegate(state, navigator) }
     val scope = rememberCoroutineScope()
-    val wkPermissionHandler = remember {
-        WKPermissionHandler(permissionHandler)
-    }
+
     UIKitView(
         factory = {
             val config =
                 WKWebViewConfiguration().apply {
-                    UIDelegate = wkPermissionHandler
                     allowsInlineMediaPlayback = true
                     defaultWebpagePreferences.allowsContentJavaScript =
                         state.webSettings.isJavaScriptEnabled
@@ -96,6 +100,7 @@ fun IOSWebView(
                 frame = CGRectZero.readValue(),
                 configuration = config,
             ).apply {
+                UIDelegate = wkPermissionHandler
                 onCreated()
                 state.viewState?.let {
                     this.interactionState = it

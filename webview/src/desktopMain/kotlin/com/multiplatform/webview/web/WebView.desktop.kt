@@ -9,7 +9,6 @@ import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
 import org.cef.browser.CefRendering
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import com.multiplatform.webview.web.PermissionHandler as MultiplatformPermissionHandler
 
 /**
  * Desktop WebView implementation.
@@ -20,16 +19,17 @@ actual fun ActualWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
-    permissionHandler: MultiplatformPermissionHandler,
+    permissionHandler: PermissionHandler?,
+    locationPermissionHandler: LocationPermissionHandler?,
     webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
 ) {
     DesktopWebView(
-        state,
-        modifier,
-        navigator,
-        webViewJsBridge,
+        state = state,
+        modifier = modifier,
+        navigator = navigator,
+        webViewJsBridge = webViewJsBridge,
         onCreated = onCreated,
         onDispose = onDispose,
     )
@@ -42,11 +42,11 @@ actual fun ActualWebView(
 @Composable
 fun DesktopWebView(
     state: WebViewState,
-    modifier: Modifier,
-    navigator: WebViewNavigator,
-    webViewJsBridge: WebViewJsBridge?,
-    onCreated: () -> Unit,
-    onDispose: () -> Unit,
+    modifier: Modifier = Modifier,
+    navigator: WebViewNavigator = rememberWebViewNavigator(),
+    webViewJsBridge: WebViewJsBridge? = null,
+    onCreated: () -> Unit = { },
+    onDispose: () -> Unit = {},
 ) {
     val currentOnDispose by rememberUpdatedState(onDispose)
     val client =

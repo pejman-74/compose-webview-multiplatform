@@ -10,7 +10,6 @@ import com.multiplatform.webview.util.KLogger
 import com.multiplatform.webview.util.getPlatform
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.merge
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**
  * Created By Kevin Zou On 2023/8/31
@@ -30,14 +29,14 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
  * @param onDispose Called when the WebView is destroyed.
  * @sample sample.BasicWebViewSample
  */
-@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun WebView(
     state: WebViewState,
     modifier: Modifier = Modifier,
     captureBackPresses: Boolean = true,
     navigator: WebViewNavigator = rememberWebViewNavigator(),
-    permissionHandler: PermissionHandler = { PermissionRequestResponse.DENY },
+    permissionHandler: PermissionHandler? = null,
+    locationPermissionHandler: LocationPermissionHandler? = null,
     webViewJsBridge: WebViewJsBridge? = null,
     onCreated: () -> Unit = {},
     onDispose: () -> Unit = {},
@@ -118,6 +117,7 @@ fun WebView(
         captureBackPresses = captureBackPresses,
         navigator = navigator,
         permissionHandler = permissionHandler,
+        locationPermissionHandler = locationPermissionHandler,
         webViewJsBridge = webViewJsBridge,
         onCreated = onCreated,
         onDispose = onDispose,
@@ -140,10 +140,11 @@ fun WebView(
 expect fun ActualWebView(
     state: WebViewState,
     modifier: Modifier = Modifier,
-    captureBackPresses: Boolean = true,
-    navigator: WebViewNavigator = rememberWebViewNavigator(),
-    permissionHandler: PermissionHandler = { PermissionRequestResponse.DENY },
-    webViewJsBridge: WebViewJsBridge? = null,
-    onCreated: () -> Unit = {},
-    onDispose: () -> Unit = {},
+    captureBackPresses: Boolean,
+    navigator: WebViewNavigator,
+    permissionHandler: PermissionHandler?,
+    locationPermissionHandler: LocationPermissionHandler?,
+    webViewJsBridge: WebViewJsBridge?,
+    onCreated: () -> Unit,
+    onDispose: () -> Unit,
 )

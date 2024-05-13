@@ -1,7 +1,6 @@
 package com.multiplatform.webview.web
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
 
@@ -14,18 +13,20 @@ actual fun ActualWebView(
     modifier: Modifier,
     captureBackPresses: Boolean,
     navigator: WebViewNavigator,
-    permissionHandler: PermissionHandler,
+    permissionHandler: PermissionHandler?,
+    locationPermissionHandler: LocationPermissionHandler?,
     webViewJsBridge: WebViewJsBridge?,
     onCreated: () -> Unit,
     onDispose: () -> Unit,
 ) {
     AccompanistWebView(
-        state,
-        modifier,
-        captureBackPresses,
-        navigator,
-        webViewJsBridge,
-        chromeClient = remember { AccompanistWebChromeClient(permissionHandler) },
+        state = state,
+        modifier = modifier,
+        captureBackPresses = captureBackPresses,
+        navigator = navigator,
+        permissionHandler = permissionHandler,
+        locationPermissionHandler = locationPermissionHandler,
+        webViewJsBridge = webViewJsBridge,
         onCreated = { _ -> onCreated() },
         onDispose = { _ -> onDispose() },
     )
