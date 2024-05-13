@@ -66,14 +66,14 @@ fun IOSWebView(
         }
     val navigationDelegate = remember { WKNavigationDelegate(state, navigator) }
     val scope = rememberCoroutineScope()
-    val wkPermissionHandler = remember {
-        WKPermissionHandler(permissionHandler)
-    }
+    val wkPermissionHandler =
+        remember {
+            WKPermissionHandler(permissionHandler)
+        }
     UIKitView(
         factory = {
             val config =
                 WKWebViewConfiguration().apply {
-                    UIDelegate = wkPermissionHandler
                     allowsInlineMediaPlayback = true
                     defaultWebpagePreferences.allowsContentJavaScript =
                         state.webSettings.isJavaScriptEnabled
@@ -96,6 +96,7 @@ fun IOSWebView(
                 frame = CGRectZero.readValue(),
                 configuration = config,
             ).apply {
+                UIDelegate = wkPermissionHandler
                 onCreated()
                 state.viewState?.let {
                     this.interactionState = it
