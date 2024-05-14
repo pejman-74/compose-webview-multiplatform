@@ -47,6 +47,12 @@ internal fun WebViewApp() {
         composable("tab") {
             VoyagerNavigationSample(controller)
         }
+        composable("permission") {
+            PermissionWebViewSample(pop = controller::popBackStack)
+        }
+        composable("location_permission") {
+            LocationPermissionWebViewSample(pop = controller::popBackStack)
+        }
     }
 }
 
@@ -73,6 +79,18 @@ fun MainScreen(controller: NavController) {
             controller.navigate("tab")
         }) {
             Text("Tab Sample", fontSize = 18.sp)
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(onClick = {
+            controller.navigate("permission")
+        }) {
+            Text("Permission Sample", fontSize = 18.sp)
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(onClick = {
+            controller.navigate("location_permission")
+        }) {
+            Text("Location Permission Sample", fontSize = 18.sp)
         }
     }
 }
