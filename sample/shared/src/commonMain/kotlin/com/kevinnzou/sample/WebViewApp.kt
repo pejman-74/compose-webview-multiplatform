@@ -53,6 +53,9 @@ internal fun WebViewApp() {
         composable("location_permission") {
             LocationPermissionWebViewSample(pop = controller::popBackStack)
         }
+        composable("file_chooser") {
+            FileChooserWebViewSample(pop = controller::popBackStack)
+        }
     }
 }
 
@@ -91,6 +94,12 @@ fun MainScreen(controller: NavController) {
             controller.navigate("location_permission")
         }) {
             Text("Location Permission Sample", fontSize = 18.sp)
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(onClick = {
+            controller.navigate("file_chooser")
+        }) {
+            Text("File Chooser Sample", fontSize = 18.sp)
         }
     }
 }

@@ -10,6 +10,7 @@ sealed class PlatformWebSettings {
      * Android web settings
      */
     data class AndroidWebSettings(
+        var enableFileChooser: Boolean = false,
         /**
          * Enables or disables file access within WebView.
          * Note that this enables or disables file system access only. Assets and resources

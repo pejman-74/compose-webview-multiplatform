@@ -2,11 +2,14 @@ package com.multiplatform.webview.web
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.view.ViewGroup
 import android.webkit.GeolocationPermissions
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -15,10 +18,15 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
@@ -165,6 +173,26 @@ fun AccompanistWebView(
         },
     factory: ((Context) -> WebView)? = null,
 ) {
+    if (state.webSettings.androidWebSettings.enableFileChooser) {
+        var filePathCallback: ValueCallback<Array<Uri>>? by remember { mutableStateOf(null) }
+        val showFileChooserLauncher =
+            rememberLauncherForActivityResult(
+                ActivityResultContracts.StartActivityForResult(),
+            ) {
+                val uris: Array<Uri>? =
+                    WebChromeClient.FileChooserParams.parseResult(it.resultCode, it.data)
+                filePathCallback?.onReceiveValue(uris)
+            }
+        val fileChooserHandler: FileChooserHandler =
+            remember {
+                {
+                    filePathCallback = it.filePathCallback
+                    showFileChooserLauncher.launch(it.requestIntent)
+                }
+            }
+        chromeClient.fileChooserHandler = fileChooserHandler
+    }
+
     val webView = state.webView
     val scope = rememberCoroutineScope()
 
@@ -343,6 +371,12 @@ open class AccompanistWebViewClient : WebViewClient() {
     }
 }
 
+class FileChooserRequest(
+    val requestIntent: Intent,
+    val filePathCallback: ValueCallback<Array<Uri>>?,
+)
+typealias FileChooserHandler = (FileChooserRequest) -> Unit
+
 /**
  * AccompanistWebChromeClient
  *
@@ -355,6 +389,7 @@ open class AccompanistWebChromeClient(
     private val permissionHandler: PermissionHandler?,
     private val locationPermissionHandler: LocationPermissionHandler?,
 ) : WebChromeClient() {
+    var fileChooserHandler: FileChooserHandler? = null
     open lateinit var state: WebViewState
         internal set
     private var lastLoadedUrl = ""
@@ -412,6 +447,24 @@ open class AccompanistWebChromeClient(
                 },
             ),
         )
+    }
+
+    override fun onShowFileChooser(
+        webView: WebView?,
+        filePathCallback: ValueCallback<Array<Uri>>?,
+        fileChooserParams: FileChooserParams?,
+    ): Boolean {
+        if (fileChooserHandler != null && fileChooserParams != null) {
+            val requestIntent = fileChooserParams.createIntent()
+            fileChooserHandler?.invoke(
+                FileChooserRequest(
+                    requestIntent = requestIntent,
+                    filePathCallback = filePathCallback,
+                ),
+            )
+            return true
+        }
+        return false
     }
 }
 
