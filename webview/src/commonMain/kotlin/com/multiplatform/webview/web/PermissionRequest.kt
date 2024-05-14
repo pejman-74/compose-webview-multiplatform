@@ -1,12 +1,18 @@
 package com.multiplatform.webview.web
 
+import com.multiplatform.webview.web.PermissionRequest.Permission
+
 /**
  * Representation of a permission request.
- *
- * @property origin the URl of the website requesting the permission
  * @property permissions a list of [Permissions][Permission] requested
+ * @property grant call whenever permissions are granted
+ * @property deny call whenever permissions are denied
  */
-data class PermissionRequest(val origin: String, val permissions: List<Permission>) {
+class PermissionRequest(
+    val permissions: List<Permission>,
+    val grant: (List<Permission>) -> Unit,
+    val deny: () -> Unit,
+) {
     /**
      * Different permission types.
      */
@@ -30,30 +36,25 @@ data class PermissionRequest(val origin: String, val permissions: List<Permissio
          * Request for camera access.
          */
         VIDEO,
-
-        /**
-         * Request for location access (only on Android.
-         */
-        LOCATION
     }
-}
-
-/**
- * Possible answers to a permission request.
- */
-enum class PermissionRequestResponse {
-    /**
-     * Grant the permission request.
-     */
-    GRANT,
-
-    /**
-     * Deny the permission request.
-     */
-    DENY
 }
 
 /**
  * A handler for [PermissionRequests][PermissionRequest].
  */
-typealias PermissionHandler = (PermissionRequest) -> PermissionRequestResponse
+typealias PermissionHandler = (PermissionRequest) -> Unit
+
+/**
+ * Representation of a location permission request.
+ * @property grant call whenever permission are granted. isPersist just need for android
+ * @property deny call whenever permission are denied
+ */
+data class GeolocationPermissionRequest(
+    val grant: (isPersist: Boolean) -> Unit,
+    val deny: () -> Unit,
+)
+
+/**
+ * A handler for Location permission request
+ */
+typealias LocationPermissionHandler = (GeolocationPermissionRequest) -> Unit
