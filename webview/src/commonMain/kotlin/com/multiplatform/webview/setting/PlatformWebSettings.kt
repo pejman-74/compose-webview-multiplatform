@@ -164,6 +164,10 @@ sealed class PlatformWebSettings {
          */
         var domStorageEnabled: Boolean = false,
         /**
+         * Whether the a user gesture is required to play media. The default is {@code true}.
+         */
+        var mediaPlaybackRequiresUserGesture: Boolean = true,
+        /**
          * The Layer Type of the WebView.
          * Default is [LayerType.HARDWARE]
          */
@@ -189,6 +193,13 @@ sealed class PlatformWebSettings {
      * IOS web settings
      */
     data class IOSWebSettings(
+        /**
+         * The ios default opaque display
+         * The default value is {@code false}.
+         * When Value is true will turn off these two properties:
+         * @param backgroundColor,@param underPageBackgroundColor
+         */
+        var opaque: Boolean = false,
         /**
          * The background color of the WebView client. The default value is {@code null}.
          * Will use WebSettings backgroundColor when null.

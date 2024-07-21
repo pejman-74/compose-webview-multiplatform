@@ -33,6 +33,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
+import com.multiplatform.webview.request.WebRequest
+import com.multiplatform.webview.request.WebRequestInterceptResult
 import com.multiplatform.webview.util.KLogger
 
 /**
@@ -252,6 +254,7 @@ fun AccompanistWebView(
                         defaultFontSize = it.defaultFontSize
                         loadsImagesAutomatically = it.loadsImagesAutomatically
                         domStorageEnabled = it.domStorageEnabled
+                        mediaPlaybackRequiresUserGesture = it.mediaPlaybackRequiresUserGesture
                     }
                 }
                 if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
@@ -269,10 +272,12 @@ fun AccompanistWebView(
                         )
                     }
 
-                    WebSettingsCompat.setForceDarkStrategy(
-                        this.settings,
-                        WebSettingsCompat.DARK_STRATEGY_WEB_THEME_DARKENING_ONLY,
-                    )
+                    if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK_STRATEGY)) {
+                        WebSettingsCompat.setForceDarkStrategy(
+                            this.settings,
+                            WebSettingsCompat.DARK_STRATEGY_WEB_THEME_DARKENING_ONLY,
+                        )
+                    }
                 }
             }.also {
                 val androidWebView = AndroidWebView(it, scope, webViewJsBridge)
@@ -281,6 +286,7 @@ fun AccompanistWebView(
             }
         },
         modifier = modifier,
+        onReset = {},
         onRelease = {
             onDispose(it)
         },
@@ -300,6 +306,7 @@ open class AccompanistWebViewClient : WebViewClient() {
         internal set
     open lateinit var navigator: WebViewNavigator
         internal set
+    private var isRedirect = false
 
     override fun onPageStarted(
         view: WebView,
@@ -339,6 +346,9 @@ open class AccompanistWebViewClient : WebViewClient() {
         url: String?,
         isReload: Boolean,
     ) {
+        KLogger.d {
+            "doUpdateVisitedHistory: $url"
+        }
         super.doUpdateVisitedHistory(view, url, isReload)
 
         navigator.canGoBack = view.canGoBack()
@@ -367,6 +377,56 @@ open class AccompanistWebViewClient : WebViewClient() {
                     error.description.toString(),
                 ),
             )
+        }
+    }
+
+    override fun shouldOverrideUrlLoading(
+        view: WebView?,
+        request: WebResourceRequest?,
+    ): Boolean {
+        KLogger.d {
+            "shouldOverrideUrlLoading: ${request?.url} ${request?.isForMainFrame} ${request?.isRedirect} ${request?.method}"
+        }
+        if (isRedirect || request == null || navigator.requestInterceptor == null) {
+            isRedirect = false
+            return super.shouldOverrideUrlLoading(view, request)
+        }
+        val isRedirectRequest =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                request.isRedirect
+            } else {
+                false
+            }
+        val webRequest =
+            WebRequest(
+                request.url.toString(),
+                request.requestHeaders?.toMutableMap() ?: mutableMapOf(),
+                request.isForMainFrame,
+                isRedirectRequest,
+                request.method ?: "GET",
+            )
+        val interceptResult =
+            navigator.requestInterceptor!!.onInterceptUrlRequest(
+                webRequest,
+                navigator,
+            )
+        return when (interceptResult) {
+            is WebRequestInterceptResult.Allow -> {
+                false
+            }
+
+            is WebRequestInterceptResult.Reject -> {
+                true
+            }
+
+            is WebRequestInterceptResult.Modify -> {
+                isRedirect = true
+                interceptResult.request.apply {
+                    navigator.stopLoading()
+                    navigator.loadUrl(this.url, this.headers)
+                }
+                true
+            }
         }
     }
 }

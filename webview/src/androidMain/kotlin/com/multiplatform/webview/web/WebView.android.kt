@@ -1,5 +1,6 @@
 package com.multiplatform.webview.web
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
@@ -16,8 +17,9 @@ actual fun ActualWebView(
     permissionHandler: PermissionHandler?,
     locationPermissionHandler: LocationPermissionHandler?,
     webViewJsBridge: WebViewJsBridge?,
-    onCreated: () -> Unit,
-    onDispose: () -> Unit,
+    onCreated: (NativeWebView) -> Unit,
+    onDispose: (NativeWebView) -> Unit,
+    factory: (WebViewFactoryParam) -> NativeWebView,
 ) {
     AccompanistWebView(
         state = state,
@@ -27,7 +29,14 @@ actual fun ActualWebView(
         permissionHandler = permissionHandler,
         locationPermissionHandler = locationPermissionHandler,
         webViewJsBridge = webViewJsBridge,
-        onCreated = { _ -> onCreated() },
-        onDispose = { _ -> onDispose() },
+        onCreated = onCreated,
+        onDispose = onDispose,
+        factory = { factory(WebViewFactoryParam(it)) },
     )
 }
+
+/** Android WebView factory parameters: a context. */
+actual data class WebViewFactoryParam(val context: Context)
+
+/** Default WebView factory for Android. */
+actual fun defaultWebViewFactory(param: WebViewFactoryParam) = android.webkit.WebView(param.context)

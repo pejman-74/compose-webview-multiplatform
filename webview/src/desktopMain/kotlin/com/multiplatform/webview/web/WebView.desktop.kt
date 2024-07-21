@@ -7,7 +7,9 @@ import com.multiplatform.webview.jsbridge.WebViewJsBridge
 import compose_webview_multiplatform.webview.generated.resources.Res
 import dev.datlag.kcef.KCEF
 import dev.datlag.kcef.KCEFBrowser
+import dev.datlag.kcef.KCEFClient
 import org.cef.browser.CefRendering
+import org.cef.browser.CefRequestContext
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**
@@ -22,8 +24,9 @@ actual fun ActualWebView(
     permissionHandler: PermissionHandler?,
     locationPermissionHandler: LocationPermissionHandler?,
     webViewJsBridge: WebViewJsBridge?,
-    onCreated: () -> Unit,
-    onDispose: () -> Unit,
+    onCreated: (NativeWebView) -> Unit,
+    onDispose: (NativeWebView) -> Unit,
+    factory: (WebViewFactoryParam) -> NativeWebView,
 ) {
     DesktopWebView(
         state = state,
@@ -32,8 +35,59 @@ actual fun ActualWebView(
         webViewJsBridge = webViewJsBridge,
         onCreated = onCreated,
         onDispose = onDispose,
+        factory = factory,
     )
 }
+
+/** Desktop WebView factory parameters: web view state, client, and possible file content. */
+actual class WebViewFactoryParam(
+    val state: WebViewState,
+    val client: KCEFClient,
+    val fileContent: String,
+) {
+    inline val webSettings get() = state.webSettings
+    inline val rendering: CefRendering get() =
+        if (webSettings.desktopWebSettings.offScreenRendering) {
+            CefRendering.OFFSCREEN
+        } else {
+            CefRendering.DEFAULT
+        }
+    inline val transparent: Boolean get() = webSettings.desktopWebSettings.transparent
+    val requestContext: CefRequestContext get() = createModifiedRequestContext(webSettings)
+}
+
+/** Default WebView factory for Desktop. */
+actual fun defaultWebViewFactory(param: WebViewFactoryParam): NativeWebView =
+    when (val content = param.state.content) {
+        is WebContent.Url ->
+            param.client.createBrowser(
+                content.url,
+                param.rendering,
+                param.transparent,
+                param.requestContext,
+            )
+        is WebContent.Data ->
+            param.client.createBrowserWithHtml(
+                content.data,
+                content.baseUrl ?: KCEFBrowser.BLANK_URI,
+                param.rendering,
+                param.transparent,
+            )
+        is WebContent.File ->
+            param.client.createBrowserWithHtml(
+                param.fileContent,
+                KCEFBrowser.BLANK_URI,
+                param.rendering,
+                param.transparent,
+            )
+        else ->
+            param.client.createBrowser(
+                KCEFBrowser.BLANK_URI,
+                param.rendering,
+                param.transparent,
+                param.requestContext,
+            )
+    }
 
 /**
  * Desktop WebView implementation.
@@ -45,8 +99,9 @@ fun DesktopWebView(
     modifier: Modifier = Modifier,
     navigator: WebViewNavigator = rememberWebViewNavigator(),
     webViewJsBridge: WebViewJsBridge? = null,
-    onCreated: () -> Unit = { },
-    onDispose: () -> Unit = {},
+    onCreated: (NativeWebView) -> Unit = { },
+    onDispose: (NativeWebView) -> Unit = {},
+    factory: (WebViewFactoryParam) -> NativeWebView,
 ) {
     val currentOnDispose by rememberUpdatedState(onDispose)
     val client =
@@ -73,73 +128,24 @@ fun DesktopWebView(
     }
 
     val browser: KCEFBrowser? =
-        remember(
-            client,
-            state.webSettings.desktopWebSettings.offScreenRendering,
-            state.webSettings.desktopWebSettings.transparent,
-            state.webSettings,
-            fileContent,
-        ) {
-            val rendering =
-                if (state.webSettings.desktopWebSettings.offScreenRendering) {
-                    CefRendering.OFFSCREEN
-                } else {
-                    CefRendering.DEFAULT
-                }
-
-            when (val current = state.content) {
-                is WebContent.Url ->
-                    client?.createBrowser(
-                        current.url,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                        createModifiedRequestContext(state.webSettings),
-                    )
-
-                is WebContent.Data ->
-                    client?.createBrowserWithHtml(
-                        current.data,
-                        current.baseUrl ?: KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                    )
-
-                is WebContent.File ->
-                    client?.createBrowserWithHtml(
-                        fileContent,
-                        KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                    )
-
-                else -> {
-                    client?.createBrowser(
-                        KCEFBrowser.BLANK_URI,
-                        rendering,
-                        state.webSettings.desktopWebSettings.transparent,
-                        createModifiedRequestContext(state.webSettings),
-                    )
-                }
-            }
+        remember(client, state.webSettings, fileContent) {
+            client?.let { factory(WebViewFactoryParam(state, client, fileContent)) }
         }
-    val desktopWebView =
+    val desktopWebView: DesktopWebView? =
         remember(browser) {
-            if (browser != null) {
-                DesktopWebView(browser, scope, webViewJsBridge)
-            } else {
-                null
-            }
+            browser?.let { DesktopWebView(browser, scope, webViewJsBridge) }
         }
 
     browser?.let {
         SwingPanel(
             factory = {
-                onCreated()
+                onCreated(it)
                 state.webView = desktopWebView
                 webViewJsBridge?.webView = desktopWebView
                 browser.apply {
                     addDisplayHandler(state)
                     addLoadListener(state, navigator)
+                    addRequestHandler(state, navigator)
                 }
                 browser.uiComponent
             },
@@ -150,7 +156,7 @@ fun DesktopWebView(
     DisposableEffect(Unit) {
         onDispose {
             client?.dispose()
-            currentOnDispose()
+            browser?.let { currentOnDispose(it) }
         }
     }
 }
