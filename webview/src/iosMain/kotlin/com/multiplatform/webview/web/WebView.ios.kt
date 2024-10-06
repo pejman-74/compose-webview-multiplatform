@@ -143,6 +143,7 @@ fun IOSWebView(
                         scrollEnabled = it.scrollEnabled
                         showsHorizontalScrollIndicator = it.showHorizontalScrollIndicator
                         showsVerticalScrollIndicator = it.showVerticalScrollIndicator
+                        inspectable = it.enableInspectableMode
                     }
                 }
             }.also {

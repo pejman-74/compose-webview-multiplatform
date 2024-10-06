@@ -255,6 +255,7 @@ fun AccompanistWebView(
                         loadsImagesAutomatically = it.loadsImagesAutomatically
                         domStorageEnabled = it.domStorageEnabled
                         mediaPlaybackRequiresUserGesture = it.mediaPlaybackRequiresUserGesture
+                        WebView.setWebContentsDebuggingEnabled(it.enableDebugMode)
                     }
                 }
                 if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {

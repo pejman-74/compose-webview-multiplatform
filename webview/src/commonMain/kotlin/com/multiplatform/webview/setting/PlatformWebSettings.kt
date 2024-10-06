@@ -10,6 +10,11 @@ sealed class PlatformWebSettings {
      * Android web settings
      */
     data class AndroidWebSettings(
+        /**
+         * inspect WebView locally on browser
+         * @see 'https://developer.chrome.com/docs/devtools/remote-debugging/webviews
+         * */
+        var enableDebugMode: Boolean = false,
         var enableFileChooser: Boolean = false,
         /**
          * Enables or disables file access within WebView.
@@ -206,6 +211,11 @@ sealed class PlatformWebSettings {
      * IOS web settings
      */
     data class IOSWebSettings(
+        /**
+         * inspect WebView locally on browser
+         * @see 'https://medium.com/@atifqamar29/debugging-ios-webviews-on-safari-browser-822def097497
+         * */
+        var enableInspectableMode: Boolean = false,
         /**
          * The ios default opaque display
          * The default value is {@code false}.
